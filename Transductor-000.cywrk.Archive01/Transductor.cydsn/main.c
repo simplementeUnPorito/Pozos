@@ -46,7 +46,7 @@ uint8 DMA_2_TD[1];
 
 int16 datos[LONGITUD];
 float y[LONGITUD];
-uint8 flag = '0';
+uint8 flag = 'W';
 uint j;
 
 
@@ -81,6 +81,15 @@ int main(void)
     {
         switch (flag)
         {
+        case 'W':
+            //Espera trigger: botón hardware o comando 'T' desde MATLAB por UART
+            if (UART_1_GetRxBufferSize() > 0) {
+                if (UART_1_GetByte() == 'T') {
+                    flag = '0';
+                }
+            }
+            break;
+
         case '0':
             //printf("%c\r\n",flag); 
             //Se espera el flanco que conmuta el flip flop
@@ -106,10 +115,11 @@ int main(void)
                 //y[j] = ADC_DelSig_1_CountsTo_Volts(datos[j]);
                 Chart_1_Plot(y[j]);
             }
-            //envBytesChecksum((uint8_t*)datos, LONGITUD*2,UART_1_PutChar);
-            
-            //Se reinicia la maquina de estados. 
-            flag = '0';
+            //Se envian los datos crudos a MATLAB con checksum
+            envBytesChecksum((uint8_t*)datos, LONGITUD*2, UART_1_PutChar);
+
+            //Se reinicia la maquina de estados.
+            flag = 'W';
             
             break;           
         }         
