@@ -1,0 +1,865 @@
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"Chart_1.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.global	__aeabi_f2d
+  20              		.section	.text.Chart_1_Plot,"ax",%progbits
+  21              		.align	2
+  22              		.global	Chart_1_Plot
+  23              		.thumb
+  24              		.thumb_func
+  25              		.type	Chart_1_Plot, %function
+  26              	Chart_1_Plot:
+  27              	.LFB64:
+  28              		.file 1 "Generated_Source\\PSoC5\\Chart_1.c"
+   1:Generated_Source\PSoC5/Chart_1.c **** /* ============================================================================
+   2:Generated_Source\PSoC5/Chart_1.c ****  *   SeroalPlot v0.0 custom component
+   3:Generated_Source\PSoC5/Chart_1.c ****  *
+   4:Generated_Source\PSoC5/Chart_1.c ****  * Description:
+   5:Generated_Source\PSoC5/Chart_1.c ****  *   Implements interface for serial communication with SerialPlot charting software
+   6:Generated_Source\PSoC5/Chart_1.c ****  *   Uses UART communication to send data types:
+   7:Generated_Source\PSoC5/Chart_1.c ****          int8, int16, int32, uint8, uint16, uin32, float
+   8:Generated_Source\PSoC5/Chart_1.c ****  *   in:
+   9:Generated_Source\PSoC5/Chart_1.c ****  *      -single binary format 
+  10:Generated_Source\PSoC5/Chart_1.c ****  *      -custom frame (+header, +checksum)
+  11:Generated_Source\PSoC5/Chart_1.c ****  *      -ASCII
+  12:Generated_Source\PSoC5/Chart_1.c ****  *
+  13:Generated_Source\PSoC5/Chart_1.c ****  * Credits:
+  14:Generated_Source\PSoC5/Chart_1.c ****  *   Serial PLOT v0.10.0
+  15:Generated_Source\PSoC5/Chart_1.c ****  *   by Yavuz Ozderya
+  16:Generated_Source\PSoC5/Chart_1.c ****  *   https://bitbucket.org/hyOzd/serialplot   
+  17:Generated_Source\PSoC5/Chart_1.c ****  *
+  18:Generated_Source\PSoC5/Chart_1.c ****  * ============================================================================
+  19:Generated_Source\PSoC5/Chart_1.c ****  * PROVIDED AS-IS, NO WARRANTY OF ANY KIND, INCLUDING, BUT NOT LIMITED TO, THE
+  20:Generated_Source\PSoC5/Chart_1.c ****  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+  21:Generated_Source\PSoC5/Chart_1.c ****  * FREE TO SHARE, USE AND MODIFY UNDER TERMS: CREATIVE COMMONS - SHARE ALIKE
+  22:Generated_Source\PSoC5/Chart_1.c ****  * ============================================================================
+  23:Generated_Source\PSoC5/Chart_1.c **** */
+  24:Generated_Source\PSoC5/Chart_1.c **** 
+  25:Generated_Source\PSoC5/Chart_1.c **** #include <Chart_1.h> // must specify API prefix in Symbol->Properties->Doc.APIPrefix
+  26:Generated_Source\PSoC5/Chart_1.c **** #include <stdio.h>      // sformat (ASCII mode only)
+  27:Generated_Source\PSoC5/Chart_1.c **** 
+  28:Generated_Source\PSoC5/Chart_1.c **** 
+  29:Generated_Source\PSoC5/Chart_1.c **** 
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 2
+
+
+  30:Generated_Source\PSoC5/Chart_1.c **** //====================================
+  31:Generated_Source\PSoC5/Chart_1.c **** //        private definitions
+  32:Generated_Source\PSoC5/Chart_1.c **** //====================================
+  33:Generated_Source\PSoC5/Chart_1.c **** #define Chart_1_DataPacketSize   4  // size of sinle data packet (slice)  
+  34:Generated_Source\PSoC5/Chart_1.c **** 
+  35:Generated_Source\PSoC5/Chart_1.c **** #define _SimpleBinary  (0x00u)
+  36:Generated_Source\PSoC5/Chart_1.c **** #define _ASCII         (0x01u)
+  37:Generated_Source\PSoC5/Chart_1.c **** #define _CustomFrame   (0x02u)
+  38:Generated_Source\PSoC5/Chart_1.c ****     
+  39:Generated_Source\PSoC5/Chart_1.c **** 
+  40:Generated_Source\PSoC5/Chart_1.c **** //====================================
+  41:Generated_Source\PSoC5/Chart_1.c **** //        private variables
+  42:Generated_Source\PSoC5/Chart_1.c **** //====================================
+  43:Generated_Source\PSoC5/Chart_1.c **** 
+  44:Generated_Source\PSoC5/Chart_1.c ****   
+  45:Generated_Source\PSoC5/Chart_1.c **** //====================================
+  46:Generated_Source\PSoC5/Chart_1.c **** //        private functions
+  47:Generated_Source\PSoC5/Chart_1.c **** //====================================
+  48:Generated_Source\PSoC5/Chart_1.c **** 
+  49:Generated_Source\PSoC5/Chart_1.c **** 
+  50:Generated_Source\PSoC5/Chart_1.c **** 
+  51:Generated_Source\PSoC5/Chart_1.c **** 
+  52:Generated_Source\PSoC5/Chart_1.c **** 
+  53:Generated_Source\PSoC5/Chart_1.c **** #if ((Chart_1_DataFormat==_SimpleBinary) & (Chart_1_DataPacketSize==1) )
+  54:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+  55:Generated_Source\PSoC5/Chart_1.c **** // Unique function to send data in Simple Binary format, int8 (uint8), N=1       
+  56:Generated_Source\PSoC5/Chart_1.c **** // this is simplest and fastest format, which does not need
+  57:Generated_Source\PSoC5/Chart_1.c **** // neither header nor checksum to transmit the data
+  58:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+  59:Generated_Source\PSoC5/Chart_1.c **** void Chart_1_Plot(float32 V1)
+  60:Generated_Source\PSoC5/Chart_1.c **** {
+  61:Generated_Source\PSoC5/Chart_1.c ****     // Format:      Simple Binary
+  62:Generated_Source\PSoC5/Chart_1.c ****     // Channels:    1
+  63:Generated_Source\PSoC5/Chart_1.c ****     // Number Type: float32
+  64:Generated_Source\PSoC5/Chart_1.c ****     // Endianness:  Little Endian
+  65:Generated_Source\PSoC5/Chart_1.c **** 
+  66:Generated_Source\PSoC5/Chart_1.c ****     UART_1_PutChar(V1);    // unique 8-bit case
+  67:Generated_Source\PSoC5/Chart_1.c **** }
+  68:Generated_Source\PSoC5/Chart_1.c **** #endif
+  69:Generated_Source\PSoC5/Chart_1.c **** 
+  70:Generated_Source\PSoC5/Chart_1.c **** 
+  71:Generated_Source\PSoC5/Chart_1.c **** 
+  72:Generated_Source\PSoC5/Chart_1.c **** 
+  73:Generated_Source\PSoC5/Chart_1.c **** 
+  74:Generated_Source\PSoC5/Chart_1.c **** #if ((Chart_1_DataFormat==_SimpleBinary) & (Chart_1_DataPacketSize!=1) )
+  75:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+  76:Generated_Source\PSoC5/Chart_1.c **** // Universal parametrized function to send data in Single Binary Frame format
+  77:Generated_Source\PSoC5/Chart_1.c **** // excluding unique combination of data packet size=1: int8 (uint8), N=1
+  78:Generated_Source\PSoC5/Chart_1.c **** //    
+  79:Generated_Source\PSoC5/Chart_1.c **** // This mode of operation does not guarantee coerrect data transmission
+  80:Generated_Source\PSoC5/Chart_1.c **** // all received data may be corrupted due to a loss of a single byte    
+  81:Generated_Source\PSoC5/Chart_1.c **** //    
+  82:Generated_Source\PSoC5/Chart_1.c **** // works for NumChan = 1 to 8
+  83:Generated_Source\PSoC5/Chart_1.c **** // Args - arguments list: "int8 V1, int8 V2,.." 
+  84:Generated_Source\PSoC5/Chart_1.c **** // Vals - values list   : "V1, V2,.."
+  85:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+  86:Generated_Source\PSoC5/Chart_1.c **** void Chart_1_Plot(float32 V1) 
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 3
+
+
+  87:Generated_Source\PSoC5/Chart_1.c **** {   
+  88:Generated_Source\PSoC5/Chart_1.c ****     // Format:      Simple Binary
+  89:Generated_Source\PSoC5/Chart_1.c ****     // Channels:    1
+  90:Generated_Source\PSoC5/Chart_1.c ****     // Number Type: float32
+  91:Generated_Source\PSoC5/Chart_1.c ****     // Endianness:  Little Endian
+  92:Generated_Source\PSoC5/Chart_1.c **** 
+  93:Generated_Source\PSoC5/Chart_1.c ****     float32 val[1] = {V1};  
+  94:Generated_Source\PSoC5/Chart_1.c ****  
+  95:Generated_Source\PSoC5/Chart_1.c ****     UART_1_PutArray((uint8 *) &val, sizeof(val)); // send data as array of char
+  96:Generated_Source\PSoC5/Chart_1.c **** }
+  97:Generated_Source\PSoC5/Chart_1.c **** #endif
+  98:Generated_Source\PSoC5/Chart_1.c **** 
+  99:Generated_Source\PSoC5/Chart_1.c **** 
+ 100:Generated_Source\PSoC5/Chart_1.c **** 
+ 101:Generated_Source\PSoC5/Chart_1.c **** 
+ 102:Generated_Source\PSoC5/Chart_1.c **** #if ((Chart_1_DataFormat==_CustomFrame) & (!Chart_1_Checksum))
+ 103:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+ 104:Generated_Source\PSoC5/Chart_1.c **** // Universal parametrized function to send data in Custom Frame format
+ 105:Generated_Source\PSoC5/Chart_1.c **** // works for NumChan = 1 to 8
+ 106:Generated_Source\PSoC5/Chart_1.c **** // Args - arguments list: "int8 V1, int8 V2,.." 
+ 107:Generated_Source\PSoC5/Chart_1.c **** // Vals - values list   : "V1, V2,.."
+ 108:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+ 109:Generated_Source\PSoC5/Chart_1.c **** void Chart_1_Plot(float32 V1) 
+ 110:Generated_Source\PSoC5/Chart_1.c **** {
+ 111:Generated_Source\PSoC5/Chart_1.c ****     // todo: use customizer to extract number of bytes in the header?
+ 112:Generated_Source\PSoC5/Chart_1.c ****     
+ 113:Generated_Source\PSoC5/Chart_1.c ****     // Format:      Custom Frame
+ 114:Generated_Source\PSoC5/Chart_1.c ****     // Frame Start: 0xAA, 0xBB
+ 115:Generated_Source\PSoC5/Chart_1.c ****     // Channels:    1
+ 116:Generated_Source\PSoC5/Chart_1.c ****     // Frame Size:  Fixed, Size=4
+ 117:Generated_Source\PSoC5/Chart_1.c ****     // Number Type: float32
+ 118:Generated_Source\PSoC5/Chart_1.c ****     // Endianness:  Little Endian
+ 119:Generated_Source\PSoC5/Chart_1.c ****     // Checksum:    false
+ 120:Generated_Source\PSoC5/Chart_1.c **** 
+ 121:Generated_Source\PSoC5/Chart_1.c ****     struct {
+ 122:Generated_Source\PSoC5/Chart_1.c ****         uint8    head[2];
+ 123:Generated_Source\PSoC5/Chart_1.c ****         float32  val[1];
+ 124:Generated_Source\PSoC5/Chart_1.c ****     } __attribute__ ((packed)) Frame  = { {0xAA, 0xBB}, {V1} };  
+ 125:Generated_Source\PSoC5/Chart_1.c **** 
+ 126:Generated_Source\PSoC5/Chart_1.c ****     
+ 127:Generated_Source\PSoC5/Chart_1.c ****     UART_1_PutArray((uint8 *) &Frame, sizeof(Frame)); // send data Frame as array of char
+ 128:Generated_Source\PSoC5/Chart_1.c **** }
+ 129:Generated_Source\PSoC5/Chart_1.c **** 
+ 130:Generated_Source\PSoC5/Chart_1.c **** 
+ 131:Generated_Source\PSoC5/Chart_1.c **** 
+ 132:Generated_Source\PSoC5/Chart_1.c **** 
+ 133:Generated_Source\PSoC5/Chart_1.c **** 
+ 134:Generated_Source\PSoC5/Chart_1.c **** #elif ((Chart_1_DataFormat==_CustomFrame) & (Chart_1_Checksum))
+ 135:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+ 136:Generated_Source\PSoC5/Chart_1.c **** // Universal parametrized function to send data in Custom Frame format w/Checksum
+ 137:Generated_Source\PSoC5/Chart_1.c **** // works for NumChan = 1 to 8
+ 138:Generated_Source\PSoC5/Chart_1.c **** // Args - arguments list: "int8 V1, int8 V2,.." 
+ 139:Generated_Source\PSoC5/Chart_1.c **** // Vals - values list   : "V1, V2,.."
+ 140:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+ 141:Generated_Source\PSoC5/Chart_1.c **** void Chart_1_Plot(float32 V1) 
+ 142:Generated_Source\PSoC5/Chart_1.c **** { 
+ 143:Generated_Source\PSoC5/Chart_1.c ****     // Format:      Custom Frame
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 4
+
+
+ 144:Generated_Source\PSoC5/Chart_1.c ****     // Frame Start: 0xAA, 0xBB
+ 145:Generated_Source\PSoC5/Chart_1.c ****     // Channels:    1
+ 146:Generated_Source\PSoC5/Chart_1.c ****     // Frame Size:  Fixed, Size=4 
+ 147:Generated_Source\PSoC5/Chart_1.c ****     // Number Type: float32
+ 148:Generated_Source\PSoC5/Chart_1.c ****     // Endianness:  Little Endian
+ 149:Generated_Source\PSoC5/Chart_1.c ****     // Checksum:    false
+ 150:Generated_Source\PSoC5/Chart_1.c **** 
+ 151:Generated_Source\PSoC5/Chart_1.c ****     struct {
+ 152:Generated_Source\PSoC5/Chart_1.c ****         uint8    head[2];     
+ 153:Generated_Source\PSoC5/Chart_1.c ****         float32  val[1];       
+ 154:Generated_Source\PSoC5/Chart_1.c ****         uint8   CS; // checksum
+ 155:Generated_Source\PSoC5/Chart_1.c ****     } __attribute__ ((packed)) Frame  = { {0xAA, 0xBB}, {V1}, 0};  
+ 156:Generated_Source\PSoC5/Chart_1.c **** 
+ 157:Generated_Source\PSoC5/Chart_1.c ****     
+ 158:Generated_Source\PSoC5/Chart_1.c ****     // get sum of all bytes in val[] array
+ 159:Generated_Source\PSoC5/Chart_1.c ****     uint8 * pVal = (uint8 *) &Frame.val[0];             // pointer to val[] start
+ 160:Generated_Source\PSoC5/Chart_1.c ****     uint8 * pCS  = (uint8 *) &Frame.CS;                 // pointer to val[] stop
+ 161:Generated_Source\PSoC5/Chart_1.c ****     while (pVal < pCS) { * pCS += * pVal++; }           // add val[] bytes to checksum
+ 162:Generated_Source\PSoC5/Chart_1.c ****     
+ 163:Generated_Source\PSoC5/Chart_1.c ****     
+ 164:Generated_Source\PSoC5/Chart_1.c ****     UART_1_PutArray((uint8 *) &Frame, sizeof(Frame)); // send data Frame as array of char
+ 165:Generated_Source\PSoC5/Chart_1.c **** }
+ 166:Generated_Source\PSoC5/Chart_1.c **** 
+ 167:Generated_Source\PSoC5/Chart_1.c **** 
+ 168:Generated_Source\PSoC5/Chart_1.c **** 
+ 169:Generated_Source\PSoC5/Chart_1.c **** 
+ 170:Generated_Source\PSoC5/Chart_1.c **** 
+ 171:Generated_Source\PSoC5/Chart_1.c **** #elif   (Chart_1_DataFormat==_ASCII)
+ 172:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+ 173:Generated_Source\PSoC5/Chart_1.c **** // Universal parametrized function to send data in ASCII format, N = 1..8 
+ 174:Generated_Source\PSoC5/Chart_1.c **** // (floats need newlib nano + heapsize 0x200)
+ 175:Generated_Source\PSoC5/Chart_1.c **** //
+ 176:Generated_Source\PSoC5/Chart_1.c **** // Format:      ASCII
+ 177:Generated_Source\PSoC5/Chart_1.c **** // Channels:    1-8
+ 178:Generated_Source\PSoC5/Chart_1.c **** // ChDelimiter: "," 
+ 179:Generated_Source\PSoC5/Chart_1.c **** //    
+ 180:Generated_Source\PSoC5/Chart_1.c **** // Args      - arguments list: "int8 V1, int8 V2" 
+ 181:Generated_Source\PSoC5/Chart_1.c **** // FormatStr - format string : "%d,%d\r\n" 
+ 182:Generated_Source\PSoC5/Chart_1.c **** // Vals      - values list   : "V1, V2"
+ 183:Generated_Source\PSoC5/Chart_1.c **** 
+ 184:Generated_Source\PSoC5/Chart_1.c **** //==============================================================================
+ 185:Generated_Source\PSoC5/Chart_1.c **** void Chart_1_Plot(float32 V1) 
+ 186:Generated_Source\PSoC5/Chart_1.c **** {  
+  29              		.loc 1 186 0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 24
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              	.LVL0:
+  34 0000 00B5     		push	{lr}
+  35              		.cfi_def_cfa_offset 4
+  36              		.cfi_offset 14, -4
+  37 0002 87B0     		sub	sp, sp, #28
+  38              		.cfi_def_cfa_offset 32
+ 187:Generated_Source\PSoC5/Chart_1.c ****     // Format:      ASCII
+ 188:Generated_Source\PSoC5/Chart_1.c ****     // Channels:    1
+ 189:Generated_Source\PSoC5/Chart_1.c ****     // Delimiter:   comma
+ 190:Generated_Source\PSoC5/Chart_1.c **** 
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 5
+
+
+ 191:Generated_Source\PSoC5/Chart_1.c ****     char abuff[23];    // output UART buffer // todo: static? 
+ 192:Generated_Source\PSoC5/Chart_1.c **** 
+ 193:Generated_Source\PSoC5/Chart_1.c ****     sprintf(abuff, "%g\r\n", V1);   
+  39              		.loc 1 193 0
+  40 0004 FFF7FEFF 		bl	__aeabi_f2d
+  41              	.LVL1:
+  42 0008 0246     		mov	r2, r0
+  43 000a 0B46     		mov	r3, r1
+  44 000c 0449     		ldr	r1, .L3
+  45 000e 6846     		mov	r0, sp
+  46 0010 FFF7FEFF 		bl	sprintf
+  47              	.LVL2:
+ 194:Generated_Source\PSoC5/Chart_1.c ****     UART_1_PutString(abuff);          
+  48              		.loc 1 194 0
+  49 0014 6846     		mov	r0, sp
+  50 0016 FFF7FEFF 		bl	UART_1_PutString
+  51              	.LVL3:
+ 195:Generated_Source\PSoC5/Chart_1.c **** }
+  52              		.loc 1 195 0
+  53 001a 07B0     		add	sp, sp, #28
+  54              		.cfi_def_cfa_offset 4
+  55              		@ sp needed
+  56 001c 5DF804FB 		ldr	pc, [sp], #4
+  57              	.L4:
+  58              		.align	2
+  59              	.L3:
+  60 0020 00000000 		.word	.LC0
+  61              		.cfi_endproc
+  62              	.LFE64:
+  63              		.size	Chart_1_Plot, .-Chart_1_Plot
+  64              		.section	.rodata.str1.4,"aMS",%progbits,1
+  65              		.align	2
+  66              	.LC0:
+  67 0000 25670D0A 		.ascii	"%g\015\012\000"
+  67      00
+  68              		.text
+  69              	.Letext0:
+  70              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.4\\psoc creator\\import\\gnu\\arm\\5.4.
+  71              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.4\\psoc creator\\import\\gnu\\arm\\5.4.
+  72              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+  73              		.file 5 "c:\\program files (x86)\\cypress\\psoc creator\\4.4\\psoc creator\\import\\gnu\\arm\\5.4.
+  74              		.file 6 "Generated_Source\\PSoC5/UART_1.h"
+  75              		.file 7 "Generated_Source\\PSoC5/core_cm3.h"
+  76              		.section	.debug_info,"",%progbits
+  77              	.Ldebug_info0:
+  78 0000 43010000 		.4byte	0x143
+  79 0004 0400     		.2byte	0x4
+  80 0006 00000000 		.4byte	.Ldebug_abbrev0
+  81 000a 04       		.byte	0x4
+  82 000b 01       		.uleb128 0x1
+  83 000c 36000000 		.4byte	.LASF19
+  84 0010 0C       		.byte	0xc
+  85 0011 01010000 		.4byte	.LASF20
+  86 0015 35010000 		.4byte	.LASF21
+  87 0019 00000000 		.4byte	.Ldebug_ranges0+0
+  88 001d 00000000 		.4byte	0
+  89 0021 00000000 		.4byte	.Ldebug_line0
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 6
+
+
+  90 0025 02       		.uleb128 0x2
+  91 0026 04       		.byte	0x4
+  92 0027 04       		.byte	0x4
+  93 0028 C8010000 		.4byte	.LASF0
+  94 002c 02       		.uleb128 0x2
+  95 002d 01       		.byte	0x1
+  96 002e 06       		.byte	0x6
+  97 002f A6010000 		.4byte	.LASF1
+  98 0033 02       		.uleb128 0x2
+  99 0034 01       		.byte	0x1
+ 100 0035 08       		.byte	0x8
+ 101 0036 22010000 		.4byte	.LASF2
+ 102 003a 02       		.uleb128 0x2
+ 103 003b 02       		.byte	0x2
+ 104 003c 05       		.byte	0x5
+ 105 003d CE010000 		.4byte	.LASF3
+ 106 0041 02       		.uleb128 0x2
+ 107 0042 02       		.byte	0x2
+ 108 0043 07       		.byte	0x7
+ 109 0044 0E000000 		.4byte	.LASF4
+ 110 0048 03       		.uleb128 0x3
+ 111 0049 BE010000 		.4byte	.LASF10
+ 112 004d 02       		.byte	0x2
+ 113 004e 3F       		.byte	0x3f
+ 114 004f 53000000 		.4byte	0x53
+ 115 0053 02       		.uleb128 0x2
+ 116 0054 04       		.byte	0x4
+ 117 0055 05       		.byte	0x5
+ 118 0056 77010000 		.4byte	.LASF5
+ 119 005a 02       		.uleb128 0x2
+ 120 005b 04       		.byte	0x4
+ 121 005c 07       		.byte	0x7
+ 122 005d 80010000 		.4byte	.LASF6
+ 123 0061 02       		.uleb128 0x2
+ 124 0062 08       		.byte	0x8
+ 125 0063 05       		.byte	0x5
+ 126 0064 00000000 		.4byte	.LASF7
+ 127 0068 02       		.uleb128 0x2
+ 128 0069 08       		.byte	0x8
+ 129 006a 07       		.byte	0x7
+ 130 006b D1000000 		.4byte	.LASF8
+ 131 006f 04       		.uleb128 0x4
+ 132 0070 04       		.byte	0x4
+ 133 0071 05       		.byte	0x5
+ 134 0072 696E7400 		.ascii	"int\000"
+ 135 0076 02       		.uleb128 0x2
+ 136 0077 04       		.byte	0x4
+ 137 0078 07       		.byte	0x7
+ 138 0079 21000000 		.4byte	.LASF9
+ 139 007d 03       		.uleb128 0x3
+ 140 007e D8010000 		.4byte	.LASF11
+ 141 0082 03       		.byte	0x3
+ 142 0083 2C       		.byte	0x2c
+ 143 0084 48000000 		.4byte	0x48
+ 144 0088 05       		.uleb128 0x5
+ 145 0089 F9000000 		.4byte	.LASF12
+ 146 008d 04       		.byte	0x4
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 7
+
+
+ 147 008e EF01     		.2byte	0x1ef
+ 148 0090 25000000 		.4byte	0x25
+ 149 0094 02       		.uleb128 0x2
+ 150 0095 08       		.byte	0x8
+ 151 0096 04       		.byte	0x4
+ 152 0097 92010000 		.4byte	.LASF13
+ 153 009b 02       		.uleb128 0x2
+ 154 009c 01       		.byte	0x1
+ 155 009d 08       		.byte	0x8
+ 156 009e 30010000 		.4byte	.LASF14
+ 157 00a2 02       		.uleb128 0x2
+ 158 00a3 08       		.byte	0x8
+ 159 00a4 04       		.byte	0x4
+ 160 00a5 B2010000 		.4byte	.LASF15
+ 161 00a9 02       		.uleb128 0x2
+ 162 00aa 04       		.byte	0x4
+ 163 00ab 07       		.byte	0x7
+ 164 00ac E0010000 		.4byte	.LASF16
+ 165 00b0 06       		.uleb128 0x6
+ 166 00b1 C4000000 		.4byte	.LASF22
+ 167 00b5 01       		.byte	0x1
+ 168 00b6 B9       		.byte	0xb9
+ 169 00b7 00000000 		.4byte	.LFB64
+ 170 00bb 24000000 		.4byte	.LFE64-.LFB64
+ 171 00bf 01       		.uleb128 0x1
+ 172 00c0 9C       		.byte	0x9c
+ 173 00c1 0F010000 		.4byte	0x10f
+ 174 00c5 07       		.uleb128 0x7
+ 175 00c6 563100   		.ascii	"V1\000"
+ 176 00c9 01       		.byte	0x1
+ 177 00ca B9       		.byte	0xb9
+ 178 00cb 88000000 		.4byte	0x88
+ 179 00cf 00000000 		.4byte	.LLST0
+ 180 00d3 08       		.uleb128 0x8
+ 181 00d4 E9010000 		.4byte	.LASF23
+ 182 00d8 01       		.byte	0x1
+ 183 00d9 BF       		.byte	0xbf
+ 184 00da 0F010000 		.4byte	0x10f
+ 185 00de 02       		.uleb128 0x2
+ 186 00df 91       		.byte	0x91
+ 187 00e0 60       		.sleb128 -32
+ 188 00e1 09       		.uleb128 0x9
+ 189 00e2 14000000 		.4byte	.LVL2
+ 190 00e6 30010000 		.4byte	0x130
+ 191 00ea FE000000 		.4byte	0xfe
+ 192 00ee 0A       		.uleb128 0xa
+ 193 00ef 01       		.uleb128 0x1
+ 194 00f0 50       		.byte	0x50
+ 195 00f1 02       		.uleb128 0x2
+ 196 00f2 7D       		.byte	0x7d
+ 197 00f3 00       		.sleb128 0
+ 198 00f4 0A       		.uleb128 0xa
+ 199 00f5 01       		.uleb128 0x1
+ 200 00f6 51       		.byte	0x51
+ 201 00f7 05       		.uleb128 0x5
+ 202 00f8 03       		.byte	0x3
+ 203 00f9 00000000 		.4byte	.LC0
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 8
+
+
+ 204 00fd 00       		.byte	0
+ 205 00fe 0B       		.uleb128 0xb
+ 206 00ff 1A000000 		.4byte	.LVL3
+ 207 0103 3B010000 		.4byte	0x13b
+ 208 0107 0A       		.uleb128 0xa
+ 209 0108 01       		.uleb128 0x1
+ 210 0109 50       		.byte	0x50
+ 211 010a 02       		.uleb128 0x2
+ 212 010b 7D       		.byte	0x7d
+ 213 010c 00       		.sleb128 0
+ 214 010d 00       		.byte	0
+ 215 010e 00       		.byte	0
+ 216 010f 0C       		.uleb128 0xc
+ 217 0110 9B000000 		.4byte	0x9b
+ 218 0114 1F010000 		.4byte	0x11f
+ 219 0118 0D       		.uleb128 0xd
+ 220 0119 A9000000 		.4byte	0xa9
+ 221 011d 16       		.byte	0x16
+ 222 011e 00       		.byte	0
+ 223 011f 0E       		.uleb128 0xe
+ 224 0120 99010000 		.4byte	.LASF24
+ 225 0124 07       		.byte	0x7
+ 226 0125 1207     		.2byte	0x712
+ 227 0127 2B010000 		.4byte	0x12b
+ 228 012b 0F       		.uleb128 0xf
+ 229 012c 7D000000 		.4byte	0x7d
+ 230 0130 10       		.uleb128 0x10
+ 231 0131 2E000000 		.4byte	.LASF17
+ 232 0135 2E000000 		.4byte	.LASF17
+ 233 0139 05       		.byte	0x5
+ 234 013a E7       		.byte	0xe7
+ 235 013b 10       		.uleb128 0x10
+ 236 013c E8000000 		.4byte	.LASF18
+ 237 0140 E8000000 		.4byte	.LASF18
+ 238 0144 06       		.byte	0x6
+ 239 0145 8B       		.byte	0x8b
+ 240 0146 00       		.byte	0
+ 241              		.section	.debug_abbrev,"",%progbits
+ 242              	.Ldebug_abbrev0:
+ 243 0000 01       		.uleb128 0x1
+ 244 0001 11       		.uleb128 0x11
+ 245 0002 01       		.byte	0x1
+ 246 0003 25       		.uleb128 0x25
+ 247 0004 0E       		.uleb128 0xe
+ 248 0005 13       		.uleb128 0x13
+ 249 0006 0B       		.uleb128 0xb
+ 250 0007 03       		.uleb128 0x3
+ 251 0008 0E       		.uleb128 0xe
+ 252 0009 1B       		.uleb128 0x1b
+ 253 000a 0E       		.uleb128 0xe
+ 254 000b 55       		.uleb128 0x55
+ 255 000c 17       		.uleb128 0x17
+ 256 000d 11       		.uleb128 0x11
+ 257 000e 01       		.uleb128 0x1
+ 258 000f 10       		.uleb128 0x10
+ 259 0010 17       		.uleb128 0x17
+ 260 0011 00       		.byte	0
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 9
+
+
+ 261 0012 00       		.byte	0
+ 262 0013 02       		.uleb128 0x2
+ 263 0014 24       		.uleb128 0x24
+ 264 0015 00       		.byte	0
+ 265 0016 0B       		.uleb128 0xb
+ 266 0017 0B       		.uleb128 0xb
+ 267 0018 3E       		.uleb128 0x3e
+ 268 0019 0B       		.uleb128 0xb
+ 269 001a 03       		.uleb128 0x3
+ 270 001b 0E       		.uleb128 0xe
+ 271 001c 00       		.byte	0
+ 272 001d 00       		.byte	0
+ 273 001e 03       		.uleb128 0x3
+ 274 001f 16       		.uleb128 0x16
+ 275 0020 00       		.byte	0
+ 276 0021 03       		.uleb128 0x3
+ 277 0022 0E       		.uleb128 0xe
+ 278 0023 3A       		.uleb128 0x3a
+ 279 0024 0B       		.uleb128 0xb
+ 280 0025 3B       		.uleb128 0x3b
+ 281 0026 0B       		.uleb128 0xb
+ 282 0027 49       		.uleb128 0x49
+ 283 0028 13       		.uleb128 0x13
+ 284 0029 00       		.byte	0
+ 285 002a 00       		.byte	0
+ 286 002b 04       		.uleb128 0x4
+ 287 002c 24       		.uleb128 0x24
+ 288 002d 00       		.byte	0
+ 289 002e 0B       		.uleb128 0xb
+ 290 002f 0B       		.uleb128 0xb
+ 291 0030 3E       		.uleb128 0x3e
+ 292 0031 0B       		.uleb128 0xb
+ 293 0032 03       		.uleb128 0x3
+ 294 0033 08       		.uleb128 0x8
+ 295 0034 00       		.byte	0
+ 296 0035 00       		.byte	0
+ 297 0036 05       		.uleb128 0x5
+ 298 0037 16       		.uleb128 0x16
+ 299 0038 00       		.byte	0
+ 300 0039 03       		.uleb128 0x3
+ 301 003a 0E       		.uleb128 0xe
+ 302 003b 3A       		.uleb128 0x3a
+ 303 003c 0B       		.uleb128 0xb
+ 304 003d 3B       		.uleb128 0x3b
+ 305 003e 05       		.uleb128 0x5
+ 306 003f 49       		.uleb128 0x49
+ 307 0040 13       		.uleb128 0x13
+ 308 0041 00       		.byte	0
+ 309 0042 00       		.byte	0
+ 310 0043 06       		.uleb128 0x6
+ 311 0044 2E       		.uleb128 0x2e
+ 312 0045 01       		.byte	0x1
+ 313 0046 3F       		.uleb128 0x3f
+ 314 0047 19       		.uleb128 0x19
+ 315 0048 03       		.uleb128 0x3
+ 316 0049 0E       		.uleb128 0xe
+ 317 004a 3A       		.uleb128 0x3a
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 10
+
+
+ 318 004b 0B       		.uleb128 0xb
+ 319 004c 3B       		.uleb128 0x3b
+ 320 004d 0B       		.uleb128 0xb
+ 321 004e 27       		.uleb128 0x27
+ 322 004f 19       		.uleb128 0x19
+ 323 0050 11       		.uleb128 0x11
+ 324 0051 01       		.uleb128 0x1
+ 325 0052 12       		.uleb128 0x12
+ 326 0053 06       		.uleb128 0x6
+ 327 0054 40       		.uleb128 0x40
+ 328 0055 18       		.uleb128 0x18
+ 329 0056 9642     		.uleb128 0x2116
+ 330 0058 19       		.uleb128 0x19
+ 331 0059 01       		.uleb128 0x1
+ 332 005a 13       		.uleb128 0x13
+ 333 005b 00       		.byte	0
+ 334 005c 00       		.byte	0
+ 335 005d 07       		.uleb128 0x7
+ 336 005e 05       		.uleb128 0x5
+ 337 005f 00       		.byte	0
+ 338 0060 03       		.uleb128 0x3
+ 339 0061 08       		.uleb128 0x8
+ 340 0062 3A       		.uleb128 0x3a
+ 341 0063 0B       		.uleb128 0xb
+ 342 0064 3B       		.uleb128 0x3b
+ 343 0065 0B       		.uleb128 0xb
+ 344 0066 49       		.uleb128 0x49
+ 345 0067 13       		.uleb128 0x13
+ 346 0068 02       		.uleb128 0x2
+ 347 0069 17       		.uleb128 0x17
+ 348 006a 00       		.byte	0
+ 349 006b 00       		.byte	0
+ 350 006c 08       		.uleb128 0x8
+ 351 006d 34       		.uleb128 0x34
+ 352 006e 00       		.byte	0
+ 353 006f 03       		.uleb128 0x3
+ 354 0070 0E       		.uleb128 0xe
+ 355 0071 3A       		.uleb128 0x3a
+ 356 0072 0B       		.uleb128 0xb
+ 357 0073 3B       		.uleb128 0x3b
+ 358 0074 0B       		.uleb128 0xb
+ 359 0075 49       		.uleb128 0x49
+ 360 0076 13       		.uleb128 0x13
+ 361 0077 02       		.uleb128 0x2
+ 362 0078 18       		.uleb128 0x18
+ 363 0079 00       		.byte	0
+ 364 007a 00       		.byte	0
+ 365 007b 09       		.uleb128 0x9
+ 366 007c 898201   		.uleb128 0x4109
+ 367 007f 01       		.byte	0x1
+ 368 0080 11       		.uleb128 0x11
+ 369 0081 01       		.uleb128 0x1
+ 370 0082 31       		.uleb128 0x31
+ 371 0083 13       		.uleb128 0x13
+ 372 0084 01       		.uleb128 0x1
+ 373 0085 13       		.uleb128 0x13
+ 374 0086 00       		.byte	0
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 11
+
+
+ 375 0087 00       		.byte	0
+ 376 0088 0A       		.uleb128 0xa
+ 377 0089 8A8201   		.uleb128 0x410a
+ 378 008c 00       		.byte	0
+ 379 008d 02       		.uleb128 0x2
+ 380 008e 18       		.uleb128 0x18
+ 381 008f 9142     		.uleb128 0x2111
+ 382 0091 18       		.uleb128 0x18
+ 383 0092 00       		.byte	0
+ 384 0093 00       		.byte	0
+ 385 0094 0B       		.uleb128 0xb
+ 386 0095 898201   		.uleb128 0x4109
+ 387 0098 01       		.byte	0x1
+ 388 0099 11       		.uleb128 0x11
+ 389 009a 01       		.uleb128 0x1
+ 390 009b 31       		.uleb128 0x31
+ 391 009c 13       		.uleb128 0x13
+ 392 009d 00       		.byte	0
+ 393 009e 00       		.byte	0
+ 394 009f 0C       		.uleb128 0xc
+ 395 00a0 01       		.uleb128 0x1
+ 396 00a1 01       		.byte	0x1
+ 397 00a2 49       		.uleb128 0x49
+ 398 00a3 13       		.uleb128 0x13
+ 399 00a4 01       		.uleb128 0x1
+ 400 00a5 13       		.uleb128 0x13
+ 401 00a6 00       		.byte	0
+ 402 00a7 00       		.byte	0
+ 403 00a8 0D       		.uleb128 0xd
+ 404 00a9 21       		.uleb128 0x21
+ 405 00aa 00       		.byte	0
+ 406 00ab 49       		.uleb128 0x49
+ 407 00ac 13       		.uleb128 0x13
+ 408 00ad 2F       		.uleb128 0x2f
+ 409 00ae 0B       		.uleb128 0xb
+ 410 00af 00       		.byte	0
+ 411 00b0 00       		.byte	0
+ 412 00b1 0E       		.uleb128 0xe
+ 413 00b2 34       		.uleb128 0x34
+ 414 00b3 00       		.byte	0
+ 415 00b4 03       		.uleb128 0x3
+ 416 00b5 0E       		.uleb128 0xe
+ 417 00b6 3A       		.uleb128 0x3a
+ 418 00b7 0B       		.uleb128 0xb
+ 419 00b8 3B       		.uleb128 0x3b
+ 420 00b9 05       		.uleb128 0x5
+ 421 00ba 49       		.uleb128 0x49
+ 422 00bb 13       		.uleb128 0x13
+ 423 00bc 3F       		.uleb128 0x3f
+ 424 00bd 19       		.uleb128 0x19
+ 425 00be 3C       		.uleb128 0x3c
+ 426 00bf 19       		.uleb128 0x19
+ 427 00c0 00       		.byte	0
+ 428 00c1 00       		.byte	0
+ 429 00c2 0F       		.uleb128 0xf
+ 430 00c3 35       		.uleb128 0x35
+ 431 00c4 00       		.byte	0
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 12
+
+
+ 432 00c5 49       		.uleb128 0x49
+ 433 00c6 13       		.uleb128 0x13
+ 434 00c7 00       		.byte	0
+ 435 00c8 00       		.byte	0
+ 436 00c9 10       		.uleb128 0x10
+ 437 00ca 2E       		.uleb128 0x2e
+ 438 00cb 00       		.byte	0
+ 439 00cc 3F       		.uleb128 0x3f
+ 440 00cd 19       		.uleb128 0x19
+ 441 00ce 3C       		.uleb128 0x3c
+ 442 00cf 19       		.uleb128 0x19
+ 443 00d0 6E       		.uleb128 0x6e
+ 444 00d1 0E       		.uleb128 0xe
+ 445 00d2 03       		.uleb128 0x3
+ 446 00d3 0E       		.uleb128 0xe
+ 447 00d4 3A       		.uleb128 0x3a
+ 448 00d5 0B       		.uleb128 0xb
+ 449 00d6 3B       		.uleb128 0x3b
+ 450 00d7 0B       		.uleb128 0xb
+ 451 00d8 00       		.byte	0
+ 452 00d9 00       		.byte	0
+ 453 00da 00       		.byte	0
+ 454              		.section	.debug_loc,"",%progbits
+ 455              	.Ldebug_loc0:
+ 456              	.LLST0:
+ 457 0000 00000000 		.4byte	.LVL0
+ 458 0004 07000000 		.4byte	.LVL1-1
+ 459 0008 0100     		.2byte	0x1
+ 460 000a 50       		.byte	0x50
+ 461 000b 07000000 		.4byte	.LVL1-1
+ 462 000f 24000000 		.4byte	.LFE64
+ 463 0013 0600     		.2byte	0x6
+ 464 0015 F3       		.byte	0xf3
+ 465 0016 03       		.uleb128 0x3
+ 466 0017 F5       		.byte	0xf5
+ 467 0018 00       		.uleb128 0
+ 468 0019 25       		.uleb128 0x25
+ 469 001a 9F       		.byte	0x9f
+ 470 001b 00000000 		.4byte	0
+ 471 001f 00000000 		.4byte	0
+ 472              		.section	.debug_aranges,"",%progbits
+ 473 0000 1C000000 		.4byte	0x1c
+ 474 0004 0200     		.2byte	0x2
+ 475 0006 00000000 		.4byte	.Ldebug_info0
+ 476 000a 04       		.byte	0x4
+ 477 000b 00       		.byte	0
+ 478 000c 0000     		.2byte	0
+ 479 000e 0000     		.2byte	0
+ 480 0010 00000000 		.4byte	.LFB64
+ 481 0014 24000000 		.4byte	.LFE64-.LFB64
+ 482 0018 00000000 		.4byte	0
+ 483 001c 00000000 		.4byte	0
+ 484              		.section	.debug_ranges,"",%progbits
+ 485              	.Ldebug_ranges0:
+ 486 0000 00000000 		.4byte	.LFB64
+ 487 0004 24000000 		.4byte	.LFE64
+ 488 0008 00000000 		.4byte	0
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 13
+
+
+ 489 000c 00000000 		.4byte	0
+ 490              		.section	.debug_line,"",%progbits
+ 491              	.Ldebug_line0:
+ 492 0000 E7010000 		.section	.debug_str,"MS",%progbits,1
+ 492      0200CE01 
+ 492      00000201 
+ 492      FB0E0D00 
+ 492      01010101 
+ 493              	.LASF7:
+ 494 0000 6C6F6E67 		.ascii	"long long int\000"
+ 494      206C6F6E 
+ 494      6720696E 
+ 494      7400
+ 495              	.LASF4:
+ 496 000e 73686F72 		.ascii	"short unsigned int\000"
+ 496      7420756E 
+ 496      7369676E 
+ 496      65642069 
+ 496      6E7400
+ 497              	.LASF9:
+ 498 0021 756E7369 		.ascii	"unsigned int\000"
+ 498      676E6564 
+ 498      20696E74 
+ 498      00
+ 499              	.LASF17:
+ 500 002e 73707269 		.ascii	"sprintf\000"
+ 500      6E746600 
+ 501              	.LASF19:
+ 502 0036 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 502      43313120 
+ 502      352E342E 
+ 502      31203230 
+ 502      31363036 
+ 503 0069 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 503      20726576 
+ 503      6973696F 
+ 503      6E203233 
+ 503      37373135 
+ 504 009c 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 504      66756E63 
+ 504      74696F6E 
+ 504      2D736563 
+ 504      74696F6E 
+ 505              	.LASF22:
+ 506 00c4 43686172 		.ascii	"Chart_1_Plot\000"
+ 506      745F315F 
+ 506      506C6F74 
+ 506      00
+ 507              	.LASF8:
+ 508 00d1 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 508      206C6F6E 
+ 508      6720756E 
+ 508      7369676E 
+ 508      65642069 
+ 509              	.LASF18:
+ 510 00e8 55415254 		.ascii	"UART_1_PutString\000"
+ 510      5F315F50 
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 14
+
+
+ 510      75745374 
+ 510      72696E67 
+ 510      00
+ 511              	.LASF12:
+ 512 00f9 666C6F61 		.ascii	"float32\000"
+ 512      74333200 
+ 513              	.LASF20:
+ 514 0101 47656E65 		.ascii	"Generated_Source\\PSoC5\\Chart_1.c\000"
+ 514      72617465 
+ 514      645F536F 
+ 514      75726365 
+ 514      5C50536F 
+ 515              	.LASF2:
+ 516 0122 756E7369 		.ascii	"unsigned char\000"
+ 516      676E6564 
+ 516      20636861 
+ 516      7200
+ 517              	.LASF14:
+ 518 0130 63686172 		.ascii	"char\000"
+ 518      00
+ 519              	.LASF21:
+ 520 0135 433A5C50 		.ascii	"C:\\PSoC Creator\\Transductor-000.cywrk.Archive02\\"
+ 520      536F4320 
+ 520      43726561 
+ 520      746F725C 
+ 520      5472616E 
+ 521 0165 5472616E 		.ascii	"Transductor.cydsn\000"
+ 521      73647563 
+ 521      746F722E 
+ 521      63796473 
+ 521      6E00
+ 522              	.LASF5:
+ 523 0177 6C6F6E67 		.ascii	"long int\000"
+ 523      20696E74 
+ 523      00
+ 524              	.LASF6:
+ 525 0180 6C6F6E67 		.ascii	"long unsigned int\000"
+ 525      20756E73 
+ 525      69676E65 
+ 525      6420696E 
+ 525      7400
+ 526              	.LASF13:
+ 527 0192 646F7562 		.ascii	"double\000"
+ 527      6C6500
+ 528              	.LASF24:
+ 529 0199 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 529      52784275 
+ 529      66666572 
+ 529      00
+ 530              	.LASF1:
+ 531 01a6 7369676E 		.ascii	"signed char\000"
+ 531      65642063 
+ 531      68617200 
+ 532              	.LASF15:
+ 533 01b2 6C6F6E67 		.ascii	"long double\000"
+ 533      20646F75 
+ 533      626C6500 
+ARM GAS  C:\Users\elias\AppData\Local\Temp\ccJZhvUD.s 			page 15
+
+
+ 534              	.LASF10:
+ 535 01be 5F5F696E 		.ascii	"__int32_t\000"
+ 535      7433325F 
+ 535      7400
+ 536              	.LASF0:
+ 537 01c8 666C6F61 		.ascii	"float\000"
+ 537      7400
+ 538              	.LASF3:
+ 539 01ce 73686F72 		.ascii	"short int\000"
+ 539      7420696E 
+ 539      7400
+ 540              	.LASF11:
+ 541 01d8 696E7433 		.ascii	"int32_t\000"
+ 541      325F7400 
+ 542              	.LASF16:
+ 543 01e0 73697A65 		.ascii	"sizetype\000"
+ 543      74797065 
+ 543      00
+ 544              	.LASF23:
+ 545 01e9 61627566 		.ascii	"abuff\000"
+ 545      6600
+ 546              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran
