@@ -56,6 +56,7 @@ CY_ISR(RxIsr);
 
 void my_Start(void);
 void DMA_Config(void);
+static void putFloat(float val);
 
 
 int main(void)
@@ -107,21 +108,20 @@ int main(void)
             //Finalizo la adquisicion y se transmiten los datos
             Reg_Hab_Adq_Write(1u);
             isr_Fin_Adq_Disable();
-            
-            //Se envia la señal digitalizada por el puerto serie               
-            for(j=0; j<(sizeof(y)/sizeof(y[0])); j++)
-            { 
-                y[j] = ADC_SAR_1_CountsTo_Volts(datos[j]); 
-                //y[j] = ADC_DelSig_1_CountsTo_Volts(datos[j]);
-                Chart_1_Plot(y[j]);
+
+            //Se envian los datos a MATLAB como floats ASCII (protocolo S / valores / E)
+            UART_1_PutString("S\r\n");
+            for(j=0; j<LONGITUD; j++)
+            {
+                y[j] = ADC_SAR_1_CountsTo_Volts(datos[j]);
+                putFloat(y[j]);
             }
-            //Se envian los datos crudos a MATLAB con checksum
-            envBytesChecksum((uint8_t*)datos, LONGITUD*2, UART_1_PutChar);
+            UART_1_PutString("E\r\n");
 
             //Se reinicia la maquina de estados.
             flag = 'W';
-            
-            break;           
+
+            break;
         }         
         
     }
@@ -206,5 +206,24 @@ CyDmaChEnable(DMA_1_Chan, 1);
 
 
 
+
+/* Envía un float por UART como decimal ASCII sin usar %f en sprintf.
+ * Funciona aunque newlib-nano no incluya soporte de printf/float. */
+static void putFloat(float val)
+{
+    char buf[20];
+    int32 int_part;
+    uint32 dec_part;
+
+    if (val < 0.0f) {
+        UART_1_PutChar('-');
+        val = -val;
+    }
+    int_part = (int32)val;
+    dec_part = (uint32)((val - (float)int_part) * 100000.0f + 0.5f);
+    if (dec_part >= 100000u) { int_part++; dec_part = 0u; }
+    sprintf(buf, "%ld.%05lu\r\n", (long)int_part, (unsigned long)dec_part);
+    UART_1_PutString(buf);
+}
 
 /* [] END OF FILE */
