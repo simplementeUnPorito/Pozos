@@ -87,7 +87,6 @@ app.tree_groups    = {};   % cell: tree_groups{i} = vector de índices datos en 
 app.tree_items_base = {}; % strings base del árbol (sin marcadores de cargado)
 app.loaded_data_idxs = []; % índices de datos actualmente cargados en plot (en orden de slot/color)
 app.loaded_signals = {};          % {struct(signal,time,color,label)} señales en plot
-app.list_prev_sel  = [];  % selección previa del listbox (para comportamiento aditivo)
 
 % =========================================================================
 % ── Panel 1: Conexión Serial ─────────────────────────  arriba-izquierda
@@ -190,13 +189,20 @@ ui.lbl_samples = uicontrol(pp, 'Style', 'text', ...
 pp = mkpanel(fig, ' Señal Adquirida', [0.005 0.225 0.70 0.545]);
 
 ui.ax = axes('Parent', pp, ...
-    'Units', 'normalized', 'Position', [0.09 0.13 0.88 0.82]);
+    'Units', 'normalized', 'Position', [0.09 0.13 0.88 0.82], ...
+    'Box', 'on', ...
+    'XGrid', 'on', ...
+    'YGrid', 'on', ...
+    'XMinorGrid', 'on', ...
+    'YMinorGrid', 'on', ...
+    'XMinorTick', 'on', ...
+    'YMinorTick', 'on', ...
+    'Layer', 'top');
+
 xlabel(ui.ax, 'Tiempo (ms)', 'FontSize', 10);
 ylabel(ui.ax, 'Amplitud (V)', 'FontSize', 10);
 title(ui.ax, 'Sin datos — conectar y disparar adquisición', 'FontSize', 10);
-grid(ui.ax, 'on');
-grid(ui.ax, 'minor');
-box(ui.ax, 'on');
+
 ui.ax.GridAlpha      = 0.25;
 ui.ax.MinorGridAlpha = 0.12;
 ui.hline = plot(ui.ax, NaN, NaN, 'Color', PLOT_COLORS{1}, 'LineWidth', 1.3);
@@ -226,7 +232,7 @@ end
 % =========================================================================
 % ── Panel 6: Zoom ────────────────────────────────────  abajo-izquierda
 % =========================================================================
-pp = mkpanel(fig, ' Zoom', [0.005 0.010 0.700 0.208]);
+pp = mkpanel(fig, ' Zoom', [0.005 0.010 0.52 0.208]);
 
 mktext(pp, 'Tiempo (ms):', [0.01 0.64 0.09 0.22]);
 mktext(pp, 'Desde:',       [0.11 0.64 0.05 0.22]);
@@ -240,29 +246,26 @@ ui.edit_v0 = mkedit(pp, '', [0.17 0.34 0.10 0.22]);
 mktext(pp, 'Hasta:',        [0.28 0.34 0.05 0.22]);
 ui.edit_v1 = mkedit(pp, '', [0.34 0.34 0.10 0.22]);
 
-mkbtn(pp, 'Aplicar Zoom', [0.48 0.56 0.24 0.30], C_BLU,     @onZoomApply);
-mkbtn(pp, 'Reset Zoom',   [0.48 0.18 0.24 0.30], C_BG(1,:), @onZoomReset);
-
+mkbtn(pp, 'Aplicar', [0.78 0.56 0.18 0.24], C_BLU,     @onZoomApply, 8);
+mkbtn(pp, 'Reset',   [0.78 0.22 0.18 0.24], C_BG(1,:), @onZoomReset, 8);
 % =========================================================================
 % ── Panel 7: Registros guardados ────────────────────  derecha-arriba
 % =========================================================================
-pp = mkpanel(fig, ' Registros en .mat', [0.713 0.222 0.282 0.300]);
+pp = mkpanel(fig, ' Registros en .mat', [0.713 0.010 0.282 0.512]);
 
 ui.list_rec = uicontrol(pp, 'Style', 'listbox', ...
     'Units', 'normalized', 'Position', [0.02 0.02 0.96 0.96], ...
     'String', {}, 'FontSize', 8, 'BackgroundColor', C_WHT, ...
     'FontName', 'Courier New', ...
-    'Min', 0, 'Max', 10, 'Callback', @onListSelChanged);
-
+    'Min', 0, 'Max', 2);
 % =========================================================================
 % ── Panel 8: Acciones (al lado del Zoom) ────────────  derecha-abajo
 % =========================================================================
-pp = mkpanel(fig, ' Acciones', [0.713 0.010 0.282 0.208]);
+pp = mkpanel(fig, ' Acciones', [0.535 0.010 0.170 0.208]);
 
-mkbtn(pp, sprintf('Cargar / Descargar'), [0.02 0.56 0.96 0.36], C_BG(1,:), @onLoadRecord, 8);
-mkbtn(pp, sprintf('Deseleccionar todos'), [0.02 0.08 0.63 0.38], C_ORG, @onClearLoaded, 7.5);
-mkbtn(pp, 'BORRAR', [0.69 0.08 0.29 0.38], C_RED, @onDeleteRecord);
-
+mkbtn(pp, 'Cargar / Descargar',   [0.06 0.68 0.88 0.22], C_BG(1,:), @onLoadRecord, 8);
+mkbtn(pp, 'Deseleccionar todos',  [0.06 0.38 0.88 0.22], C_ORG,     @onClearLoaded, 8);
+mkbtn(pp, 'BORRAR',               [0.06 0.08 0.88 0.22], C_RED,     @onDeleteRecord, 8);
 % =========================================================================
 % Guardar estado
 % =========================================================================
@@ -580,6 +583,8 @@ refreshRecordsList();
             set(app.ui.edit_v0, 'String', '');
             set(app.ui.edit_v1, 'String', '');
         end
+
+        forceGrid(app.ui.ax);
     end
 
 % ── Cargar registro(s) seleccionado(s) ──────────────────────────────────
@@ -681,21 +686,7 @@ refreshRecordsList();
         end
     end
 
-% ── Selección aditiva del listbox ───────────────────────────────────────
-    function onListSelChanged(src, ~)
-        app     = guidata(fig);
-        new_sel = get(src, 'Value');
-        if isempty(new_sel)
-            % Limpieza programática — no aplicar unión
-            app.list_prev_sel = [];
-            guidata(fig, app);
-            return;
-        end
-        combined = unique([app.list_prev_sel(:)', new_sel(:)']);
-        set(src, 'Value', combined);
-        app.list_prev_sel = combined;
-        guidata(fig, app);
-    end
+
 
 % ── Refresh lista de puertos disponibles ─────────────────────────────────
     function onRefreshPorts(~, ~)
@@ -780,11 +771,10 @@ refreshRecordsList();
         end
         app.plot_lines = {};
         legend(app.ui.ax, 'off');
-
         app.loaded_data_idxs = [];
-        app.list_prev_sel    = [];
         guidata(fig, app);
         set(app.ui.list_rec, 'Value', []);
+        
 
         if ~isempty(app.live_signal)
             app.cur_signal     = app.live_signal;
@@ -856,8 +846,7 @@ refreshRecordsList();
             ylim(app.ui.ax, 'auto');
         end
 
-        grid(app.ui.ax, 'on');
-        grid(app.ui.ax, 'minor');
+        forceGrid(app.ui.ax);
 
         [pilote, stk] = getSelectedPilote(app);
         prof          = str2double(get(app.ui.edit_prof, 'String'));
@@ -909,8 +898,7 @@ refreshRecordsList();
             ylim(app.ui.ax, 'auto');
         end
 
-        grid(app.ui.ax, 'on');
-        grid(app.ui.ax, 'minor');
+        forceGrid(app.ui.ax);
 
         if n == 1
             rec = datos(sels(1));
@@ -1075,9 +1063,9 @@ refreshRecordsList();
         app.tree_groups     = tgroups;
         app.tree_items_base = items;
         app.loaded_data_idxs = [];
-        app.list_prev_sel    = [];
         guidata(fig, app);
         set(app.ui.list_rec, 'String', items, 'Value', []);
+
         set(app.ui.lbl_nrec, 'String', sprintf('Registros: %d', n));
     end
 
@@ -1435,4 +1423,14 @@ refreshRecordsList();
         end
     end
 
+    function forceGrid(ax)
+        grid(ax, 'on');
+        ax.XMinorTick = 'on';
+        ax.YMinorTick = 'on';
+        ax.XMinorGrid = 'on';
+        ax.YMinorGrid = 'on';
+        ax.GridAlpha = 0.25;
+        ax.MinorGridAlpha = 0.12;
+        ax.Layer = 'top';
+    end
 end % interfaz_transductor
