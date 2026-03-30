@@ -52,12 +52,13 @@ uint j;
 
 /*Prototipo de las funciones utilizadas*/
 CY_ISR_PROTO(Fin_Adq);
+CY_ISR_PROTO(RxIsr);
 
 void my_Start(void);
 void DMA_Config(void);
 void Check_UART_Trigger(void);
 
-
+uint8 bandera = 0;
 int main(void)
 {
     my_Start();
@@ -66,7 +67,10 @@ int main(void)
      //Punteros a la rutinas de interrupción  
     #if(INTERRUPT_CODE_ENABLED == ENABLED)
     isr_Fin_Adq_StartEx(Fin_Adq);
+    isr_rx_StartEx(RxIsr);
     #endif /* INTERRUPT_CODE_ENABLED == ENABLED */
+    
+    
     CyDelay(50);  
     CyGlobalIntEnable; /* Enable global interrupts. */
 
@@ -74,13 +78,14 @@ int main(void)
     Reg_Hab_Adq_Write(1u);
     Reg_Received_Write(0u);
 
-    isr_Fin_Adq_Disable();    
+    isr_Fin_Adq_Disable();
+    isr_rx_Disable();    
     /* Place your initialization/startup code here (e.g. MyInst_Start()) */
     
     
     for(;;)
     {
-        Check_UART_Trigger();
+
 
         switch (flag)
         {
@@ -88,21 +93,23 @@ int main(void)
             //printf("%c\r\n",flag); 
             //Se espera el flanco que conmuta el flip flop
             Reg_Hab_Adq_Write(0u);
+            Reg_Received_Write(0u);
             isr_Fin_Adq_Enable();
+            isr_rx_Enable();    
             //ADC_DelSig_1_Start();
             flag = '1';
             break;
         
         case '1':
             //Se espera la finalizacion de la adquisicion
-            Check_UART_Trigger();
             break;
             
         case '2':
             //Finalizo la adquisicion y se transmiten los datos
             Reg_Hab_Adq_Write(1u);
+            Reg_Received_Write(0u);   /* cerrar ciclo del trigger UART */
             isr_Fin_Adq_Disable();
-            
+            isr_rx_Disable();    
             //Se envia la señal digitalizada por el puerto serie               
             for(j=0; j<(sizeof(y)/sizeof(y[0])); j++)
             { 
@@ -166,10 +173,10 @@ CY_ISR(Fin_Adq){
 }
 
 
-void Check_UART_Trigger(void)
+CY_ISR(RxIsr)
 {
     uint8 dato_rx;
-
+    isr_rx_ClearPending();
     while(UART_1_GetRxBufferSize() > 0u)
     {
         dato_rx = UART_1_GetChar();
@@ -177,11 +184,10 @@ void Check_UART_Trigger(void)
         if(dato_rx == 'T')
         {
             Reg_Received_Write(1u);
-            CyDelayUs(10u);
-            Reg_Received_Write(0u);
         }
     }
 }
+
 
 
 void DMA_Config(){

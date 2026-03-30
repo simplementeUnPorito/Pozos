@@ -41,8 +41,7 @@ DEF_BAUD_IDX  = 5;   % 115200
 PLOT_COLORS   = {[0.12 0.40 0.82], [0.82 0.18 0.14], [0.15 0.65 0.20], ...
                  [0.88 0.52 0.08], [0.55 0.20 0.75], [0.10 0.70 0.70], ...
                  [0.70 0.45 0.10], [0.80 0.10 0.60]};
-STAT_YPOS     = [0.76 0.60 0.44 0.28 0.12];  % posiciones Y de filas de estadísticas
-
+STAT_YPOS     = [0.82 0.64 0.46 0.28 0.10];
 % Paleta de colores
 C_BG  = [0.93 0.93 0.93];
 C_GRN = [0.15 0.65 0.20];
@@ -210,11 +209,12 @@ ui.hline = plot(ui.ax, NaN, NaN, 'Color', PLOT_COLORS{1}, 'LineWidth', 1.3);
 % =========================================================================
 % ── Panel 5: Estadísticas de señal ──────────────────  centro-derecha-top
 % =========================================================================
-pp = mkpanel(fig, ' Estadísticas', [0.713 0.530 0.282 0.240]);
+pp = mkpanel(fig, ' Estadísticas', [0.713 0.500 0.282 0.270]);
+
 
 stat_names = {'Máx (V):', 'Mín (V):', 'Media (V):', 'RMS (V):', 'Duración (ms):'};
 for s_i = 1:5
-    mktext(pp, stat_names{s_i}, [0.04 STAT_YPOS(s_i) 0.52 0.16]);
+    mktext(pp, stat_names{s_i}, [0.03 STAT_YPOS(s_i) 0.26 0.14]);
 end
 % Pre-crear hasta 8 value-labels por fila (uno por curva), coloreados dinámicamente
 NMAX_C = length(PLOT_COLORS);
@@ -859,28 +859,59 @@ refreshRecordsList();
     end
 
     function doMultiPlot(app, datos, sels)
-        % Limpiar líneas previas
+        % Limpiar líneas previas del multiplo
         for k = 1:length(app.plot_lines)
             try; if isvalid(app.plot_lines{k}); delete(app.plot_lines{k}); end; catch; end
         end
         app.plot_lines = {};
-
-        % Ocultar la línea de señal en vivo
-        set(app.ui.hline, 'XData', NaN, 'YData', NaN);
         legend(app.ui.ax, 'off');
 
-        n = length(sels);
-        legend_strs = cell(1, n);
-
         hold(app.ui.ax, 'on');
-        for k = 1:n
-            col = PLOT_COLORS{mod(k-1, length(PLOT_COLORS)) + 1};
+
+        legend_strs = {};
+        curve_idx = 0;
+        app.loaded_signals = {};
+
+        % 1) Mantener la señal viva del PSoC si existe
+        if ~isempty(app.live_signal) && ~isempty(app.live_time)
+            curve_idx = curve_idx + 1;
+            set(app.ui.hline, ...
+                'XData', app.live_time, ...
+                'YData', app.live_signal, ...
+                'Color', PLOT_COLORS{1}, ...
+                'LineWidth', 1.4, ...
+                'Visible', 'on');
+            legend_strs{curve_idx} = 'PSoC viva';
+            app.loaded_signals{curve_idx} = struct( ...
+                'signal', app.live_signal(:), ...
+                'time',   app.live_time(:), ...
+                'color',  PLOT_COLORS{1}, ...
+                'label',  'Adquirida PSoC');
+        else
+            set(app.ui.hline, 'XData', NaN, 'YData', NaN);
+        end
+
+        % 2) Agregar registros del .mat sin borrar la señal viva
+        for k = 1:length(sels)
+            color_slot = mod(curve_idx, length(PLOT_COLORS)) + 1;
+            col = PLOT_COLORS{color_slot};
             rec = datos(sels(k));
+
+            curve_idx = curve_idx + 1;
             h = plot(app.ui.ax, rec.tiempo(:), rec.senal(:), ...
                 'Color', col, 'LineWidth', 1.2);
-            app.plot_lines{k} = h;
-            legend_strs{k} = sprintf('[%d] %s  %.2f m', sels(k), rec.pilote, rec.profundidad);
+
+            app.plot_lines{end+1} = h; %#ok<AGROW>
+            legend_strs{curve_idx} = sprintf('[%d] %s  %.2f m', ...
+                sels(k), rec.pilote, rec.profundidad); %#ok<AGROW>
+
+            app.loaded_signals{curve_idx} = struct( ...
+                'signal', rec.senal(:), ...
+                'time',   rec.tiempo(:), ...
+                'color',  col, ...
+                'label',  sprintf('[%d] %s @ %.2fm', sels(k), rec.pilote, rec.profundidad)); %#ok<AGROW>
         end
+
         hold(app.ui.ax, 'off');
 
         t0 = str2double(get(app.ui.edit_t0, 'String'));
@@ -890,6 +921,7 @@ refreshRecordsList();
         else
             xlim(app.ui.ax, 'auto');
         end
+
         v0 = str2double(get(app.ui.edit_v0, 'String'));
         v1 = str2double(get(app.ui.edit_v1, 'String'));
         if ~isnan(v0) && ~isnan(v1) && v0 < v1
@@ -900,35 +932,43 @@ refreshRecordsList();
 
         forceGrid(app.ui.ax);
 
-        if n == 1
-            rec = datos(sels(1));
-            title(app.ui.ax, ...
-                sprintf('Pilote: %s  |  Prof: %.2f m  |  Stickup: %.2f m  |  N = %d pts', ...
-                rec.pilote, rec.profundidad, rec.stickup, length(rec.senal)), 'FontSize', 10);
+        total_curves = length(app.loaded_signals);
+        if total_curves == 1
+            if ~isempty(app.live_signal)
+                title(app.ui.ax, 'Señal viva del PSoC', 'FontSize', 10);
+            else
+                rec = datos(sels(1));
+                title(app.ui.ax, ...
+                    sprintf('Pilote: %s  |  Prof: %.2f m  |  Stickup: %.2f m  |  N = %d pts', ...
+                    rec.pilote, rec.profundidad, rec.stickup, length(rec.senal)), 'FontSize', 10);
+            end
         else
-            title(app.ui.ax, sprintf('%d señales superpuestas', n), 'FontSize', 10);
+            title(app.ui.ax, sprintf('%d señales superpuestas', total_curves), 'FontSize', 10);
         end
 
-        % Legend con handles explícitos para excluir hline (que siempre es azul y el primero)
-        if n > 1
-            hh = gobjects(1, n);
-            for k = 1:n; hh(k) = app.plot_lines{k}; end
+        % leyenda: incluir hline si existe señal viva
+        hh = gobjects(0);
+        if ~isempty(app.live_signal)
+            hh(end+1) = app.ui.hline; %#ok<AGROW>
+        end
+        for k = 1:length(app.plot_lines)
+            hh(end+1) = app.plot_lines{k}; %#ok<AGROW>
+        end
+        if ~isempty(hh)
             legend(app.ui.ax, hh, legend_strs, 'Location', 'best', 'FontSize', 8);
         end
 
-        % Poblar loaded_signals para estadísticas
-        app.loaded_signals = {};
-        for k = 1:n
-            col = PLOT_COLORS{mod(k-1, length(PLOT_COLORS)) + 1};
-            rec = datos(sels(k));
-            app.loaded_signals{k} = struct( ...
-                'signal', rec.senal(:), 'time', rec.tiempo(:), 'color', col, ...
-                'label',  sprintf('[%d] %s @ %.2fm', sels(k), rec.pilote, rec.profundidad));
+        % cur_signal/cur_time: conservar la viva como referencia si existe
+        if ~isempty(app.live_signal)
+            app.cur_signal = app.live_signal(:);
+            app.cur_time   = app.live_time(:);
+        elseif ~isempty(sels)
+            app.cur_signal = datos(sels(end)).senal(:);
+            app.cur_time   = datos(sels(end)).tiempo(:);
+        else
+            app.cur_signal = [];
+            app.cur_time   = [];
         end
-
-        % Actualizar cur_signal/cur_time con la última señal cargada
-        app.cur_signal = datos(sels(end)).senal(:);
-        app.cur_time   = datos(sels(end)).tiempo(:);
 
         guidata(fig, app);
         doUpdateStats(app);
@@ -938,6 +978,7 @@ refreshRecordsList();
 
     function doUpdateStats(app)
         NMAX = length(PLOT_COLORS);
+
         % Ocultar todos los labels
         for s_i = 1:5
             for k_i = 1:NMAX
@@ -947,26 +988,36 @@ refreshRecordsList();
         if isempty(app.loaded_signals); return; end
 
         n = min(length(app.loaded_signals), NMAX);
-        val_w = 0.40 / n;
+
+        % Zona de valores más ancha y mejor distribuida
+        x0 = 0.30;       % inicio horizontal de valores
+        x1 = 0.985;      % fin horizontal de valores
+        gap = 0.008;     % separación entre columnas
+        val_w = (x1 - x0 - (n-1)*gap) / n;
 
         for k = 1:n
             ls  = app.loaded_signals{k};
             sig = ls.signal(:);
             t   = ls.time(:);
             col = ls.color;
-            x   = 0.57 + (k-1) * val_w;
+            x   = x0 + (k-1)*(val_w + gap);
+
             try
                 vals = [max(sig), min(sig), mean(sig), rms(sig), t(end)];
             catch
                 vals = [max(sig), min(sig), mean(sig), sqrt(mean(sig.^2)), t(end)];
             end
+
             for s_i = 1:5
                 set(app.ui.stat_vals{s_i, k}, ...
-                    'String',          sprintf('%.3f', vals(s_i)), ...
-                    'Units',           'normalized', ...
-                    'Position',        [x, STAT_YPOS(s_i), val_w * 0.96, 0.14], ...
+                    'String', sprintf('%.3f', vals(s_i)), ...
+                    'Units', 'normalized', ...
+                    'Position', [x, STAT_YPOS(s_i), val_w, 0.11], ...
                     'ForegroundColor', col, ...
-                    'Visible',         'on');
+                    'Visible', 'on', ...
+                    'HorizontalAlignment', 'center', ...
+                    'FontSize', 10, ...
+                    'FontWeight', 'bold');
             end
         end
     end
