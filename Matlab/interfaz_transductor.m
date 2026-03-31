@@ -2,7 +2,8 @@ function interfaz_transductor()
 % INTERFAZ_TRANSDUCTOR  Adquisición y guardado para transductor piezoeléctrico
 %
 % Recibe LONGITUD=2000 floats en ASCII via UART del PSoC (CY8CKIT-059).
-% Guarda cada medición en un struct array dentro de un único archivo .mat.
+% Guarda cada medición en archivos .mat separados por pilote dentro de una
+% carpeta seleccionable por el usuario.
 %
 % ── PROTOCOLO SERIAL (ASCII, un float por línea) ──────────────────────────
 %   S<LF>          ← inicio de trama  (opcional)
@@ -14,17 +15,22 @@ function interfaz_transductor()
 %   al recibir LONGITUD valores numéricos consecutivos.
 %   El botón DISPARAR envía el byte 'T' al PSoC para solicitar adquisición.
 %
-% ── ESTRUCTURA GUARDADA EN .mat ────────────────────────────────────────────
-%   datos(i).pilote       string  — identificador del pilote
-%   datos(i).profundidad  double  — profundidad [m]
-%   datos(i).stickup      double  — stickup del pivote [m]
-%   datos(i).senal        Nx1     — señal ADC convertida a voltios
-%   datos(i).tiempo       Nx1     — eje de tiempo [ms]
-%   datos(i).fs           double  — frecuencia de muestreo [Hz]
-%   datos(i).fecha        string  — timestamp de adquisición
-%   datos(i).n_muestras   int     — cantidad de muestras recibidas
+% ── ESTRUCTURA GUARDADA EN .mat (un archivo por pilote) ────────────────────
+%   pilote_info.nombre      string  — identificador del pilote
+%   pilote_info.stickup     double  — stickup del pivote [m]
+%   pilote_info.fecha_reg   string  — fecha de registro del pilote
+%
+%   pilote_datos(i).pilote       string  — identificador del pilote
+%   pilote_datos(i).profundidad  double  — profundidad [m]
+%   pilote_datos(i).stickup      double  — stickup del pivote [m]
+%   pilote_datos(i).senal        Nx1     — señal ADC convertida a voltios
+%   pilote_datos(i).tiempo       Nx1     — eje de tiempo [ms]
+%   pilote_datos(i).fs           double  — frecuencia de muestreo [Hz]
+%   pilote_datos(i).fecha        string  — timestamp de adquisición
+%   pilote_datos(i).n_muestras   int     — cantidad de muestras recibidas
 %
 % ── LÓGICA DE GUARDADO ─────────────────────────────────────────────────────
+%   Cada pilote tiene su propio .mat en la carpeta de datos.
 %   Tags iguales  (pilote + profundidad + stickup) → sobreescribe
 %   Tags distintos                                 → append
 %
@@ -64,9 +70,10 @@ fig = figure( ...
 % =========================================================================
 % Estado de la aplicación  (compartido mediante guidata)
 % =========================================================================
-% Anclar el archivo .mat al directorio donde vive este script
+% Anclar la carpeta de datos al directorio donde vive este script
 script_dir     = fileparts(mfilename('fullpath'));
-def_matfile    = fullfile(script_dir, 'datos_pozos.mat');
+def_matfolder  = fullfile(script_dir, 'datos_pozos');
+if ~isfolder(def_matfolder); mkdir(def_matfolder); end
 
 app.LONGITUD   = LONGITUD;
 app.serial_obj = [];
@@ -79,7 +86,7 @@ app.cur_signal  = [];
 app.cur_time    = [];
 app.live_signal    = [];   % señal recibida por serial (única que se puede guardar)
 app.live_time      = [];
-app.mat_file       = def_matfile;
+app.mat_folder     = def_matfolder;
 app.pilotes        = [];
 app.plot_lines     = {};
 app.tree_groups    = {};   % cell: tree_groups{i} = vector de índices datos en ese ítem ([] si vacío/placeholder)
@@ -149,8 +156,8 @@ ui.edit_fs = mkedit(pp, '10000', [0.17 0.16 0.11 0.19]);
 mktext(pp, 'Puntos:', [0.30 0.15 0.09 0.18]);
 ui.edit_longitud = mkedit(pp, num2str(LONGITUD), [0.40 0.16 0.09 0.19]);
 
-mktext(pp, 'Archivo:', [0.51 0.15 0.09 0.18]);
-ui.edit_matfile = mkedit(pp, def_matfile, [0.61 0.16 0.26 0.19]);
+mktext(pp, 'Carpeta:', [0.51 0.15 0.09 0.18]);
+ui.edit_matfile = mkedit(pp, def_matfolder, [0.61 0.16 0.26 0.19]);
 mkbtn(pp, '...', [0.88 0.16 0.10 0.19], C_BG(1,:), @onBrowse);
 
 % Info
@@ -490,11 +497,11 @@ refreshRecordsList();
 
         prof   = str2double(get(app.ui.edit_prof,    'String'));
         fs_val = str2double(get(app.ui.edit_fs,      'String'));
-        mfile  = strtrim(get(app.ui.edit_matfile,  'String'));
+        mfolder = strtrim(get(app.ui.edit_matfile, 'String'));
 
         if isnan(prof);    prof   = 0;                end
         if isnan(fs_val);  fs_val = 10000;            end
-        if isempty(mfile); mfile  = 'datos_pozos.mat'; end
+        if isempty(mfolder); mfolder = def_matfolder; end
 
         % Construir registro — siempre append, la fecha diferencia las mediciones
         nuevo.pilote      = nombre_pilote;
@@ -506,19 +513,19 @@ refreshRecordsList();
         nuevo.fecha       = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
         nuevo.n_muestras  = length(app.cur_signal);
 
-        % Cargar datos y pilotes existentes
-        datos   = loadDatos(mfile);
-        pilotes = loadPilotes(mfile); %#ok<NASGU>
+        % Cargar datos existentes del pilote
+        pilote_datos = loadPiloteDatos(mfolder, nombre_pilote);
 
-        if isempty(datos)
-            datos = nuevo;
+        if isempty(pilote_datos)
+            pilote_datos = nuevo;
         else
-            datos(end+1) = nuevo;
+            pilote_datos(end+1) = nuevo;
         end
 
         try
-            save(mfile, 'datos', 'pilotes');
-            app.mat_file = mfile;
+            pilote_info = getPiloteInfoByName(mfolder, nombre_pilote);
+            savePiloteFile(mfolder, pilote_info, pilote_datos);
+            app.mat_folder = mfolder;
             guidata(fig, app);
             set(app.ui.lbl_status, 'String', ...
                 sprintf('Estado: GUARDADO — %s @ %.2f m  [%s]', ...
@@ -532,12 +539,11 @@ refreshRecordsList();
 
 % ── Examinar archivo .mat ────────────────────────────────────────────────
     function onBrowse(~, ~)
-        [fn, fp] = uiputfile('*.mat', 'Seleccionar archivo de datos', 'datos_pozos.mat');
-        if isequal(fn, 0); return; end
+        folder = uigetdir(def_matfolder, 'Seleccionar carpeta de datos');
+        if isequal(folder, 0); return; end
         app = guidata(fig);
-        fp_full = fullfile(fp, fn);
-        set(app.ui.edit_matfile, 'String', fp_full);
-        app.mat_file = fp_full;
+        set(app.ui.edit_matfile, 'String', folder);
+        app.mat_folder = folder;
         guidata(fig, app);
         refreshPilotesList();
         refreshRecordsList();
@@ -590,12 +596,12 @@ refreshRecordsList();
 % ── Cargar registro(s) seleccionado(s) ──────────────────────────────────
     function onLoadRecord(~, ~)
         app   = guidata(fig);
-        mfile = strtrim(get(app.ui.edit_matfile, 'String'));
-        if exist(mfile, 'file') ~= 2
-            warndlg('Archivo .mat no encontrado.', 'Aviso'); return;
+        mfolder = strtrim(get(app.ui.edit_matfile, 'String'));
+        if ~isfolder(mfolder)
+            warndlg('Carpeta de datos no encontrada.', 'Aviso'); return;
         end
 
-        datos = loadDatos(mfile);
+        datos = loadAllDatos(mfolder);
         if isempty(datos)
             warndlg('No hay registros en el archivo.', 'Aviso'); return;
         end
@@ -713,12 +719,12 @@ refreshRecordsList();
 % ── Borrar registros seleccionados del .mat ──────────────────────────────
     function onDeleteRecord(~, ~)
         app   = guidata(fig);
-        mfile = strtrim(get(app.ui.edit_matfile, 'String'));
-        if exist(mfile, 'file') ~= 2
-            warndlg('Archivo .mat no encontrado.', 'Aviso'); return;
+        mfolder = strtrim(get(app.ui.edit_matfile, 'String'));
+        if ~isfolder(mfolder)
+            warndlg('Carpeta de datos no encontrada.', 'Aviso'); return;
         end
 
-        datos = loadDatos(mfile);
+        datos = loadAllDatos(mfolder);
         if isempty(datos); return; end
 
         raw_sels = get(app.ui.list_rec, 'Value');
@@ -746,13 +752,25 @@ refreshRecordsList();
         confirm = questdlg(msg, 'Confirmar eliminación', 'Eliminar', 'Cancelar', 'Cancelar');
         if ~strcmp(confirm, 'Eliminar'); return; end
 
+        % Identificar pilotes afectados
+        affected_pilotes = unique({datos(data_idxs).pilote});
+
         mask = true(1, length(datos));
         mask(data_idxs) = false;
-        datos = datos(mask); %#ok<NASGU>
+        datos_remaining = datos(mask);
 
-        pilotes = loadPilotes(mfile); %#ok<NASGU>
         try
-            save(mfile, 'datos', 'pilotes');
+            for ap = 1:length(affected_pilotes)
+                pname = affected_pilotes{ap};
+                pilote_info = getPiloteInfoByName(mfolder, pname);
+                if isempty(datos_remaining)
+                    pilote_datos = []; %#ok<NASGU>
+                else
+                    pmask = strcmp({datos_remaining.pilote}, pname);
+                    pilote_datos = datos_remaining(pmask); %#ok<NASGU>
+                end
+                savePiloteFile(mfolder, pilote_info, pilote_datos);
+            end
             set(app.ui.lbl_status, 'String', ...
                 sprintf('%d registro(s) eliminado(s).', length(data_idxs)), ...
                 'ForegroundColor', C_ORG);
@@ -1024,14 +1042,14 @@ refreshRecordsList();
 
     function refreshRecordsList()
         app   = guidata(fig);
-        mfile = strtrim(get(app.ui.edit_matfile, 'String'));
+        mfolder = strtrim(get(app.ui.edit_matfile, 'String'));
         items = {};
         tgroups = {};
         n     = 0;
 
-        if exist(mfile, 'file') == 2
+        if isfolder(mfolder)
             try
-                datos = loadDatos(mfile);
+                datos = loadAllDatos(mfolder);
                 n = length(datos);
                 if n > 0
                     % ── Construir grupos: pilote → profundidad → mediciones ──
@@ -1107,7 +1125,7 @@ refreshRecordsList();
         end
 
         if isempty(items)
-            items = {'(archivo aún no creado)'};
+            items = {'(carpeta vacía o no encontrada)'};
             tgroups = {[]};
         end
 
@@ -1120,15 +1138,62 @@ refreshRecordsList();
         set(app.ui.lbl_nrec, 'String', sprintf('Registros: %d', n));
     end
 
-    function datos = loadDatos(mfile)
-        % Carga el struct array 'datos' desde el .mat; devuelve [] si falla
+    function datos = loadAllDatos(folder)
+        % Carga y fusiona pilote_datos de todos los .mat en la carpeta
         datos = [];
-        if exist(mfile, 'file') ~= 2; return; end
+        if ~isfolder(folder); return; end
+        files = dir(fullfile(folder, '*.mat'));
+        for kk = 1:length(files)
+            try
+                tmp = load(fullfile(folder, files(kk).name), 'pilote_datos');
+                if isfield(tmp, 'pilote_datos') && ~isempty(tmp.pilote_datos)
+                    if isempty(datos); datos = tmp.pilote_datos;
+                    else;              datos = [datos, tmp.pilote_datos]; end %#ok<AGROW>
+                end
+            catch
+            end
+        end
+    end
+
+    function pilote_datos = loadPiloteDatos(folder, nombre)
+        % Carga pilote_datos de un .mat específico de pilote
+        pilote_datos = [];
+        fname = matFileForPilote(folder, nombre);
+        if exist(fname, 'file') ~= 2; return; end
         try
-            tmp   = load(mfile, 'datos');
-            datos = tmp.datos;
+            tmp = load(fname, 'pilote_datos');
+            if isfield(tmp, 'pilote_datos')
+                pilote_datos = tmp.pilote_datos;
+            end
         catch
         end
+    end
+
+    function pilote_info = getPiloteInfoByName(folder, nombre)
+        % Carga pilote_info de un .mat específico de pilote
+        pilote_info = [];
+        fname = matFileForPilote(folder, nombre);
+        if exist(fname, 'file') ~= 2; return; end
+        try
+            tmp = load(fname, 'pilote_info');
+            if isfield(tmp, 'pilote_info')
+                pilote_info = tmp.pilote_info;
+            end
+        catch
+        end
+    end
+
+    function fname = matFileForPilote(folder, nombre)
+        % Devuelve la ruta del .mat para un pilote dado (nombre sanitizado)
+        safe = regexprep(nombre, '[^a-zA-Z0-9_\-]', '_');
+        fname = fullfile(folder, [safe '.mat']);
+    end
+
+    function savePiloteFile(folder, pilote_info, pilote_datos) %#ok<INUSL>
+        % Guarda un archivo .mat con la info y datos de un pilote
+        if ~isfolder(folder); mkdir(folder); end
+        fname = matFileForPilote(folder, pilote_info.nombre);
+        save(fname, 'pilote_info', 'pilote_datos');
     end
 
 % ── Gestión de pilotes ───────────────────────────────────────────────────
@@ -1136,8 +1201,8 @@ refreshRecordsList();
     function onNewPilote(~, ~)
         % Abre la ventana modal de gestión de pilotes
         app   = guidata(fig);
-        mfile = strtrim(get(app.ui.edit_matfile, 'String'));
-        if isempty(mfile); mfile = 'datos_pozos.mat'; end
+        mfolder = strtrim(get(app.ui.edit_matfile, 'String'));
+        if isempty(mfolder); mfolder = def_matfolder; end
 
         % ── Figura modal ────────────────────────────────────────────────
         dlg = figure( ...
@@ -1217,7 +1282,7 @@ refreshRecordsList();
 
         % ── Callbacks internos del diálogo ───────────────────────────────
         function dlgRefreshList()
-            pilotes = loadPilotes(mfile);
+            pilotes = loadAllPilotes(mfolder);
             if isempty(pilotes)
                 set(dlg_list, 'String', {'(no hay pilotes registrados)'}, 'Value', 1);
             else
@@ -1245,7 +1310,7 @@ refreshRecordsList();
                     'ForegroundColor', C_RED); return;
             end
 
-            pilotes = loadPilotes(mfile);
+            pilotes = loadAllPilotes(mfolder);
             for jj = 1:length(pilotes)
                 if strcmpi(pilotes(jj).nombre, nombre)
                     set(lbl, 'String', ...
@@ -1258,13 +1323,9 @@ refreshRecordsList();
             nuevo_p.stickup   = stk;
             nuevo_p.fecha_reg = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 
-            if isempty(pilotes); pilotes = nuevo_p;
-            else;                pilotes(end+1) = nuevo_p;
-            end
-
-            datos = loadDatos(mfile); %#ok<NASGU>
+            pilote_datos = []; %#ok<NASGU>
             try
-                save(mfile, 'datos', 'pilotes');
+                savePiloteFile(mfolder, nuevo_p, pilote_datos);
                 set(dlg_nombre,  'String', '');
                 set(dlg_stickup, 'String', '0.500');
                 set(lbl, 'String', sprintf('Pilote "%s" agregado.', nombre), ...
@@ -1277,7 +1338,7 @@ refreshRecordsList();
         end
 
         function dlgEliminar(~, ~)
-            pilotes = loadPilotes(mfile);
+            pilotes = loadAllPilotes(mfolder);
             lbl     = findobj(dlg, 'Tag', 'dlg_status');
             if isempty(pilotes)
                 set(lbl, 'String', 'No hay pilotes para eliminar.', ...
@@ -1289,19 +1350,20 @@ refreshRecordsList();
 
             nombre_del = pilotes(sel).nombre;
             confirm = questdlg( ...
-                sprintf('¿Eliminar el pilote "%s"?\nEsta acción no elimina las mediciones asociadas.', nombre_del), ...
+                sprintf('¿Eliminar el pilote "%s"?\nEsto eliminará también todas sus mediciones.', nombre_del), ...
                 'Confirmar', 'Eliminar', 'Cancelar', 'Cancelar');
             if ~strcmp(confirm, 'Eliminar'); return; end
 
-            pilotes(sel) = [];
-            datos = loadDatos(mfile); %#ok<NASGU>
             try
-                save(mfile, 'datos', 'pilotes');
+                fname_del = matFileForPilote(mfolder, nombre_del);
+                if exist(fname_del, 'file') == 2
+                    delete(fname_del);
+                end
                 set(lbl, 'String', sprintf('Pilote "%s" eliminado.', nombre_del), ...
                     'ForegroundColor', C_ORG);
                 dlgRefreshList();
             catch err
-                set(lbl, 'String', ['Error al guardar: ' err.message], ...
+                set(lbl, 'String', ['Error al eliminar: ' err.message], ...
                     'ForegroundColor', C_RED);
             end
         end
@@ -1325,9 +1387,9 @@ refreshRecordsList();
 
     function refreshPilotesList()
         app   = guidata(fig);
-        mfile = strtrim(get(app.ui.edit_matfile, 'String'));
+        mfolder = strtrim(get(app.ui.edit_matfile, 'String'));
 
-        pilotes = loadPilotes(mfile);
+        pilotes = loadAllPilotes(mfolder);
         app.pilotes = pilotes;
         guidata(fig, app);
 
@@ -1343,15 +1405,20 @@ refreshRecordsList();
         end
     end
 
-    function pilotes = loadPilotes(mfile)
+    function pilotes = loadAllPilotes(folder)
+        % Carga pilote_info de todos los .mat en la carpeta
         pilotes = [];
-        if exist(mfile, 'file') ~= 2; return; end
-        try
-            tmp = load(mfile, 'pilotes');
-            if isfield(tmp, 'pilotes')
-                pilotes = tmp.pilotes;
+        if ~isfolder(folder); return; end
+        files = dir(fullfile(folder, '*.mat'));
+        for kk = 1:length(files)
+            try
+                tmp = load(fullfile(folder, files(kk).name), 'pilote_info');
+                if isfield(tmp, 'pilote_info') && ~isempty(tmp.pilote_info)
+                    if isempty(pilotes); pilotes = tmp.pilote_info;
+                    else;                pilotes(end+1) = tmp.pilote_info; end %#ok<AGROW>
+                end
+            catch
             end
-        catch
         end
     end
 
