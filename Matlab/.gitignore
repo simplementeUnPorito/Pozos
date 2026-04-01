@@ -1,0 +1,19 @@
+# Configuracion de sesion (generada automaticamente por interfaz_transductor.m)
+config_interfaz.mat
+
+# Carpeta de datos de pilotes (generada por la interfaz, no versionable)
+datos_pozos/
+
+# Archivos de respaldo automatico de MATLAB
+*.asv
+
+# Figuras guardadas
+*.fig
+
+# Archivos compilados MEX
+*.mex*
+*.mexw64
+*.mexa64
+
+# Directorio de Simulink
+slprj/

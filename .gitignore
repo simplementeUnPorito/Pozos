@@ -1,5 +1,2 @@
-# Configuración de sesión del usuario (generada automáticamente)
-Matlab/config_interfaz.mat
-
-# Carpeta de datos de pilotes (generada por la interfaz)
-Matlab/datos_pozos/
+# Las reglas de MATLAB estan en Matlab/.gitignore
+# Las reglas de PSoC estan en PSoC/.gitignore
